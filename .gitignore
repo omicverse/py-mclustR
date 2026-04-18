@@ -1,0 +1,6 @@
+_rparity/
+.pytest_cache/
+refs/
+*.egg-info/
+__pycache__/
+.ipynb_checkpoints/

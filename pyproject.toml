@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mclust-py"
+version = "0.1.0"
+description = "Pure-Python re-implementation of CRAN mclust — Gaussian mixture model clustering with all 14 covariance parameterizations, AnnData-native."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Zehua Zeng", email = "starlitnightly@163.com" },
+]
+keywords = [
+    "single-cell", "scRNA-seq", "mclust", "gaussian-mixture",
+    "model-selection", "BIC", "scanpy", "anndata", "clustering",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+dependencies = [
+    "numpy>=1.23",
+    "scipy>=1.10",
+    "pandas>=1.5",
+    "scikit-learn>=1.2",
+]
+
+[project.optional-dependencies]
+anndata = ["anndata>=0.9"]
+dev = ["pytest>=7", "pytest-cov", "ruff"]
+
+[project.urls]
+Homepage = "https://github.com/omicverse/py-mclustR"
+Repository = "https://github.com/omicverse/py-mclustR"
+Issues = "https://github.com/omicverse/py-mclustR/issues"
+"Upstream (omicverse)" = "https://github.com/Starlitnightly/omicverse"
+
+[tool.setuptools.packages.find]
+include = ["mclust_py*"]
+exclude = ["tests*", "examples*", "refs*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+    "ignore::RuntimeWarning",
+]
