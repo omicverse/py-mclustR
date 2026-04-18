@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mclust-py"
+name = "pymclustR"
 version = "0.1.0"
 description = "Pure-Python re-implementation of CRAN mclust — Gaussian mixture model clustering with all 14 covariance parameterizations, AnnData-native."
 readme = "README.md"
@@ -42,6 +42,7 @@ Homepage = "https://github.com/omicverse/py-mclustR"
 Repository = "https://github.com/omicverse/py-mclustR"
 Issues = "https://github.com/omicverse/py-mclustR/issues"
 "Upstream (omicverse)" = "https://github.com/Starlitnightly/omicverse"
+PyPI = "https://pypi.org/project/pymclustR/"
 
 [tool.setuptools.packages.find]
 include = ["mclust_py*"]

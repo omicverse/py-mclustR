@@ -1,6 +1,12 @@
-# mclust-py
+# pymclustR
+
+[![PyPI](https://img.shields.io/pypi/v/pymclustR.svg)](https://pypi.org/project/pymclustR/)
+[![Python](https://img.shields.io/pypi/pyversions/pymclustR.svg)](https://pypi.org/project/pymclustR/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 A **pure-Python re-implementation of CRAN [`mclust`](https://github.com/cran/mclust)** (Scrucca, Fop, Murphy, Raftery 2016) — Gaussian mixture model clustering with all 14 covariance parameterizations and BIC-driven model selection.
+
+> The PyPI distribution is **`pymclustR`**; the Python import name is **`mclust_py`** (so `from mclust_py import Mclust`).
 
 - AnnData-native — drop-in for the scanpy ecosystem
 - No `rpy2`, no R install, no Fortran toolchain
@@ -12,7 +18,7 @@ A **pure-Python re-implementation of CRAN [`mclust`](https://github.com/cran/mcl
 ## Install
 
 ```bash
-pip install mclust-py
+pip install pymclustR
 ```
 
 ## Quick-start
@@ -20,7 +26,7 @@ pip install mclust-py
 ```python
 import numpy as np
 from sklearn import datasets
-from mclust_py import Mclust
+from mclust_py import Mclust, predict_mclust
 
 X = datasets.load_iris().data        # 150 × 4
 fit = Mclust(X, G=range(1, 6))       # tries G = 1..5 across all 14 models
@@ -28,7 +34,7 @@ print(fit)                            # Mclust(VEV, G=2)  loglik=-215.83 BIC=-56
 print(fit.BIC.iloc[:, :4].head())    # full BIC table
 
 # Predict on new cells
-z_new, cls_new = mclust_py.predict_mclust(fit, X_new)
+z_new, cls_new = predict_mclust(fit, X_new)
 ```
 
 Per-cell results are also written to AnnData via the convenience adapter:
@@ -42,13 +48,59 @@ fit = mclust_anndata(adata, use_rep="X_pca", n_components=10, G=range(2, 12))
 # adata.uns['mclust']           — BIC table + parameters
 ```
 
+## Tutorial — end-to-end on Iris
+
+```python
+from sklearn import datasets
+from mclust_py import Mclust, predict_mclust, hc, hclass, partition_to_z, me
+
+X = datasets.load_iris().data
+y = datasets.load_iris().target
+
+# 1) Default: BIC scan over G = 1..9 × all 14 covariance models
+fit = Mclust(X, G=range(1, 10))
+print("best:", fit.model_name, "G =", fit.G, "BIC =", fit.bic)
+print("classification table:", dict(zip(*np.unique(fit.classification, return_counts=True))))
+
+# 2) Pick a specific covariance family
+fit_vvv = Mclust(X, G=[3], model_names=["VVV"])     # G=3, full per-cluster Σ
+fit_eee = Mclust(X, G=[3], model_names=["EEE"])     # G=3, common full Σ
+
+# 3) Use a custom initial partition (e.g. from your favourite labels)
+z_init = partition_to_z(y, G=3)                       # one-hot from ground truth
+result = me(X, "VVV", z_init)                         # single me() call
+print("loglik:", result.loglik, "iters:", result.iterations)
+
+# 4) Hierarchical-clustering init (mclust default — Ward on SVD-whitened data)
+tree = hc(X, model_name="VVV", use="SVD")
+labels = hclass(tree, G=4)                            # cut the dendrogram into 4 clusters
+fit4 = Mclust(X, G=[4], model_names=["VVV"],
+              z_init=partition_to_z(labels, G=4))
+
+# 5) Soft-classify new cells
+z_new, cls_new = predict_mclust(fit, X[:5])
+print("posterior responsibilities for first 5 cells:\n", z_new)
+
+# 6) AnnData (optional — needs `pip install pymclustR[anndata]`)
+import anndata as ad
+adata = ad.AnnData(X)
+from mclust_py import mclust_anndata
+mclust_anndata(adata, use_rep="X", G=range(2, 7))
+# adata.obs['mclust']           — 1-based hard label
+# adata.obs['mclust_uncertainty']
+# adata.obsm['mclust_z']        — soft responsibilities
+# adata.uns['mclust']           — BIC table + parameters
+```
+
+See [`examples/comparison_R_vs_python.ipynb`](examples/comparison_R_vs_python.ipynb) for a full visual walk-through with plots, BIC curves, and R-parity tables.
+
 ## Module map
 
 | Module | What it covers |
 |---|---|
 | `mclust_py.mclust` | top-level `Mclust()` + `MclustResult` (BIC scan, model selection) |
 | `mclust_py.em` | shared E-step + EM driver `me()` (Aitken stop, mirrors R's `meXXX`) |
-| `mclust_py.models` | M-step for all 14 parameterizations (closed-form + Flury iterative) |
+| `mclust_py.models` | M-step for all 14 parameterizations (closed-form + Stiefel iterative) |
 | `mclust_py.bic` | parameter counts and BIC formula |
 | `mclust_py.hc` | Ward-on-SVD initial partition (`hc()` / `hclass()` / `partition_to_z()`) |
 | `mclust_py.density` | per-component multivariate-normal log-density |

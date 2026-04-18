@@ -1,6 +1,7 @@
 """mclust_py — Python re-implementation of CRAN's `mclust`.
 
-Mirrors the public surface of the R package for the core EM workflow:
+Distributed on PyPI as :mod:`pymclustR` (``pip install pymclustR``); the
+import name stays as ``mclust_py`` for code-level continuity.
 
 >>> from mclust_py import Mclust
 >>> import numpy as np, sklearn.datasets as ds

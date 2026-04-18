@@ -22,10 +22,12 @@ def _comparison_notebook() -> nbf.notebooknode.NotebookNode:
     c = nb.cells
 
     c.append(nbf.v4.new_markdown_cell("""\
-# `mclust-py` vs CRAN `mclust` — clustering & consistency comparison
+# `pymclustR` vs CRAN `mclust` — clustering & consistency comparison
 
 This notebook is a side-by-side comparison of the **R `mclust` 6.1.1** package
-and our **Python `mclust-py`** port on four canonical datasets:
+and our **Python `pymclustR`** port on four canonical datasets:
+
+> Install with `pip install pymclustR`. The Python import name is `mclust_py`.
 
 | Dataset    | n   | d  | Source                       |
 |------------|----:|---:|------------------------------|
@@ -177,7 +179,7 @@ for ax, (col, title) in zip(axes, metrics):
     for bar, v in zip(bars, vals):
         ax.text(v - 0.005, bar.get_y() + bar.get_height()/2, f'{v:.3f}',
                 ha='right', va='center', fontsize=8, color='white' if v > 0.85 else 'black')
-plt.suptitle('mclust-py vs R mclust — per-model agreement (averaged over 4 datasets × 4 G values)', fontsize=12)
+plt.suptitle('pymclustR vs R mclust — per-model agreement (averaged over 4 datasets × 4 G values)', fontsize=12)
 plt.tight_layout()
 plt.show()
 """))
@@ -198,7 +200,7 @@ lo = min(df['r_loglik'].min(), df['py_loglik'].min())
 hi = max(df['r_loglik'].max(), df['py_loglik'].max())
 ax.plot([lo, hi], [lo, hi], 'k--', alpha=0.5, label='y = x')
 ax.set_xlabel('R mclust loglik')
-ax.set_ylabel('mclust-py loglik')
+ax.set_ylabel('pymclustR loglik')
 ax.set_title('Per-record log-likelihood — R vs Python')
 ax.legend(ncol=2, fontsize=8, loc='upper left')
 plt.tight_layout()
@@ -220,7 +222,7 @@ for col, ds in enumerate(DATASETS):
     mname = full['modelName']
     G = int(full['G'])
     r_cls = np.array(full['classification'])
-    # Run mclust-py with the same (G, model)
+    # Run pymclustR with the same (G, model)
     z_init = load_csv(DUMP / f'zinit_{ds}_G{G}.csv') if (DUMP / f'zinit_{ds}_G{G}.csv').exists() else None
     if z_init is not None and z_init.shape[1] >= G:
         out = me(X, mname, z_init[:, :G])
@@ -237,7 +239,7 @@ for col, ds in enumerate(DATASETS):
     else:
         Xv, sub = X, ''
     palette = sns.color_palette('tab10', n_colors=max(G, 3))
-    for ax_row, cls, label in [(0, r_cls, 'R mclust'), (1, py_cls, 'mclust-py')]:
+    for ax_row, cls, label in [(0, r_cls, 'R mclust'), (1, py_cls, 'pymclustR')]:
         ax = axes[ax_row, col]
         for k in np.unique(cls):
             m = cls == k
@@ -253,7 +255,7 @@ for col, ds in enumerate(DATASETS):
                       transform=axes[0, col].transAxes,
                       ha='left', va='top', fontsize=9,
                       bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
-plt.suptitle('Cluster assignment — top: R mclust(BIC),  bottom: mclust-py(same (G, model))', fontsize=12)
+plt.suptitle('Cluster assignment — top: R mclust(BIC),  bottom: pymclustR(same (G, model))', fontsize=12)
 plt.tight_layout()
 plt.show()
 """))
@@ -262,7 +264,7 @@ plt.show()
 ## 5.  BIC curves — model selection comparison
 
 For each dataset, plot R's full `mclustBIC` matrix alongside the
-mclust-py BIC values (rebuilt from the per-record loglik in `df` plus
+pymclustR BIC values (rebuilt from the per-record loglik in `df` plus
 the `n_mclust_params` formula — same definition R uses)."""))
     c.append(nbf.v4.new_code_cell("""\
 from mclust_py.bic import n_mclust_params
@@ -303,7 +305,7 @@ for col, ds in enumerate(DATASETS):
     for m in BIC_py.columns:
         ax.plot(BIC_py.index, BIC_py[m], marker='s', ms=3, lw=1,
                 color=color_map.get(m, '#888'), label=m)
-    ax.set_title(f'mclust-py BIC — {ds}\\nbest: {best[1]} G={best[0]}')
+    ax.set_title(f'pymclustR BIC — {ds}\\nbest: {best[1]} G={best[0]}')
     ax.set_xlabel('G'); ax.set_ylabel('BIC')
 
 plt.suptitle('BIC curves — R (top) vs Python (bottom) — same colour = same model', fontsize=12)
@@ -315,7 +317,7 @@ plt.show()
 ## 6.  Confusion matrix — per-dataset hard-label agreement
 
 For each dataset we take the *best* (G, model) chosen by R, run
-`mclust-py` with the same configuration, and tabulate label agreement."""))
+`pymclustR` with the same configuration, and tabulate label agreement."""))
     c.append(nbf.v4.new_code_cell("""\
 fig, axes = plt.subplots(1, 4, figsize=(18, 4.5))
 for ax, ds in zip(axes, DATASETS):
