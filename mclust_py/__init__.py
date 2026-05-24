@@ -36,7 +36,7 @@ try:
 except Exception:  # pragma: no cover — optional dependency
     mclust_anndata = None  # type: ignore[assignment]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "Mclust",

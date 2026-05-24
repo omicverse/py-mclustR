@@ -124,6 +124,58 @@ def me(
         warning = "iteration limit reached"
         return_code = 1
 
+    # ---- mclust's post-EM defensive checks (mevvv.f lines 14829, 14888-14904) ----
+    # Replicates R's `eps` sentinels: if EM landed on a degenerate solution,
+    # mark loglik=NaN so the BIC scan skips this (model, G) combination.
+    #
+    # Without this, py-mclustR will rank degenerate small-cluster solutions as
+    # the "best" BIC on real data. Discovered via py-TSCAN's lpsdata fixture:
+    # R Mclust NAs out G=5..9 (VVV); py without this guard chose G=5.
+    #
+    # **Model scope**: only applied to FULLY-INDEPENDENT-COVARIANCE models
+    # (VVV, VVI, VII, V, EVI) where a single small cluster has its own
+    # singular covariance. SHAPE/ORIENTATION-SHARING models (EEE, EEV,
+    # VEV, EVE, VVE, EEI, VEI) borrow structure across clusters, so a
+    # singleton cluster gets a sane regularised covariance from the
+    # shared component — R does not flag those either.
+    INDEPENDENT_COV_MODELS = {"V", "VII", "VVI", "VVV", "EVI"}
+    if (
+        return_code == 0
+        and pro is not None
+        and sigma is not None
+        and model_name.upper() in INDEPENDENT_COV_MODELS
+    ):
+        rteps = np.sqrt(max(control.eps, np.finfo(np.float64).eps))
+        # (1) Empty-group check — analogue of Fortran `zsum ≤ rteps`.
+        zsum_min = float(z.sum(axis=0).min())
+        if zsum_min < rteps:
+            return_code = -2
+            warning = f"missing groups (zsum_min={zsum_min:.3e} < sqrt(eps))"
+        else:
+            # (2) Singular-covariance check — mclust's `rcmin` via Cholesky.
+            for k in range(G):
+                Sk = sigma[..., k] if sigma.ndim == 3 else sigma[k]
+                try:
+                    L = np.linalg.cholesky(Sk)
+                except np.linalg.LinAlgError:
+                    return_code = -3
+                    warning = f"non-PSD covariance in cluster {k}"
+                    break
+                d_abs = np.abs(np.diag(L))
+                rcmin = float(d_abs.min() / (1.0 + d_abs.max()))
+                if rcmin < rteps:
+                    return_code = -3
+                    warning = (
+                        f"singular covariance in cluster {k} "
+                        f"(rcmin={rcmin:.3e} < sqrt(eps))"
+                    )
+                    break
+
+    final_loglik = (
+        float("nan") if return_code < 0
+        else (float(history[-1]) if history else float("nan"))
+    )
+
     return EMResult(
         model_name=model_name,
         n=n,
@@ -133,7 +185,7 @@ def me(
         mean=mu,  # type: ignore[arg-type]
         sigma=sigma,  # type: ignore[arg-type]
         z=z,
-        loglik=float(history[-1]) if history else float("nan"),
+        loglik=final_loglik,
         iterations=its,
         converged=converged,
         history=history,
